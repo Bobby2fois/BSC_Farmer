@@ -45,7 +45,6 @@ contract BakedPizza is IReentrancyGuard {
     error AlreadyInitialized();
     error OnlyOwner();
     error TransferFailed();
-    error ReentrancyGuard();
 
     /**
      * @dev Constructor sets the CEO address to the deployer

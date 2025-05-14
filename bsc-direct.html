@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSC Miner - Direct MetaMask Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #f8931a;
+            margin-bottom: 10px;
+        }
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-item {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .wallet-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .network-badge {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .network-badge.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .network-badge.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background-color: #f8931a;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #e67e00;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .actions-card {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .action-section {
+            margin-bottom: 15px;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .input-addon {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-left: none;
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 15px 0;
+        }
+        .egg-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .egg-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BakedPizza BSC Miner</h1>
+            <p>A yield farming dApp on Binance Smart Chain</p>
+        </header>
+
+        <div class="wallet-section" id="wallet-section">
+            <div>
+                <span id="wallet-status">Connect Your BSC Wallet</span>
+                <div id="wallet-address" style="display: none;"></div>
+            </div>
+            <div>
+                <button id="connect-button">Connect MetaMask</button>
+                <span id="network-badge" class="network-badge" style="display: none;"></span>
+            </div>
+        </div>
+        
+        <div id="network-warning" style="display: none;" class="card">
+            <strong>Wrong Network Detected</strong>
+            <p>Please switch to BSC Testnet (Chain ID: 97) to use this application.</p>
+        </div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- User stats -->
+            <div class="card">
+                <h2>Your BSC Mining Stats</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Your Miners</div>
+                        <div class="stat-value" id="miners-count">0</div>
+                        <div class="stat-help">Producing eggs over time</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Your Eggs</div>
+                        <div class="stat-value" id="eggs-count">0</div>
+                        <div class="stat-help">Ready to sell or rebake</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Eggs Value</div>
+                        <div class="stat-value" id="eggs-value">0 BNB</div>
+                        <div class="stat-help">Current value in BNB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contract stats -->
+            <div class="card">
+                <h2>Contract Stats</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Contract Balance</div>
+                        <div class="stat-value" id="contract-balance">0 BNB</div>
+                        <div class="stat-help">Total BNB locked</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Market Eggs</div>
+                        <div class="stat-value" id="market-eggs">0</div>
+                        <div class="stat-help">Affects egg prices</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Contract Status</div>
+                        <div class="stat-value" id="contract-status">Unknown</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card actions-card">
+                <h2>Mining Actions</h2>
+                
+                <!-- Buy miners -->
+                <div class="action-section">
+                    <h3>Buy Miners</h3>
+                    <div class="buy-miners-controls">
+                        <div class="input-group">
+                            <input 
+                                type="number" 
+                                id="buy-amount"
+                                value="0.1"
+                                min="0.01"
+                                step="0.01"
+                            />
+                            <span class="input-addon">BNB</span>
+                        </div>
+                        <button id="buy-button" class="action-button">Buy</button>
+                    </div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <!-- Referral -->
+                <div class="action-section">
+                    <h3>Referral Address (Optional)</h3>
+                    <input
+                        type="text"
+                        id="referral-address"
+                        class="referral-input"
+                        placeholder="0x..."
+                    />
+                    <p class="help-text">
+                        Enter a referral address to give them 15% of your eggs. Leave empty to use your own address.
+                    </p>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <!-- Egg actions -->
+                <div class="egg-actions">
+                    <div class="action-section">
+                        <h3>Rebake Eggs</h3>
+                        <p class="help-text">Convert eggs to more miners (compound)</p>
+                        <button id="rebake-button" class="action-button">Rebake Eggs</button>
+                    </div>
+                    
+                    <div class="action-section">
+                        <h3>Sell Eggs</h3>
+                        <p class="help-text">Sell eggs for BNB</p>
+                        <button id="sell-button" class="action-button">Sell Eggs</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Info section -->
+            <div class="card">
+                <h2>How It Works</h2>
+                <ol>
+                    <li>Buy miners with BNB - they produce eggs over time</li>
+                    <li>You can rebake eggs to get more miners (compounding)</li>
+                    <li>Or sell your eggs for BNB anytime</li>
+                    <li>Refer friends to earn 15% of their eggs</li>
+                </ol>
+                <p id="contract-address">Contract Address: </p>
+            </div>
+        </div>
+        
+        <div id="status-message" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Contract config
+        const CONTRACT_ADDRESS = '0xde38d419D2028041E1674607bBB4D80e64E91eAF';
+        const CONTRACT_ABI = [
+            {
+                "inputs": [{"internalType": "address","name": "_dev","type": "address"}],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "inputs": [{"internalType": "address","name": "ref","type": "address"}],
+                "name": "bakePizza",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address","name": "adr","type": "address"}],
+                "name": "getChefs",
+                "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getMyEggs",
+                "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "pizzaRewards",
+                "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "rebakePizza",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "sellPizza",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+        
+        // BSC Testnet config
+        const BSC_TESTNET_CONFIG = {
+            chainId: '0x61', // 97 in hex
+            chainName: 'BSC Testnet',
+            nativeCurrency: {
+                name: 'BNB',
+                symbol: 'BNB',
+                decimals: 18
+            },
+            rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+            blockExplorerUrls: ['https://testnet.bscscan.com/']
+        };
+
+        // UI Elements
+        const connectButton = document.getElementById('connect-button');
+        const walletStatus = document.getElementById('wallet-status');
+        const walletAddress = document.getElementById('wallet-address');
+        const networkBadge = document.getElementById('network-badge');
+        const networkWarning = document.getElementById('network-warning');
+        const dashboard = document.getElementById('dashboard');
+        const statusMessage = document.getElementById('status-message');
+        const contractAddressElement = document.getElementById('contract-address');
+        
+        // Stats Elements
+        const minersCount = document.getElementById('miners-count');
+        const eggsCount = document.getElementById('eggs-count');
+        const eggsValue = document.getElementById('eggs-value');
+        const contractBalance = document.getElementById('contract-balance');
+        const marketEggs = document.getElementById('market-eggs');
+        const contractStatus = document.getElementById('contract-status');
+        
+        // Action Elements
+        const buyAmount = document.getElementById('buy-amount');
+        const referralAddress = document.getElementById('referral-address');
+        const buyButton = document.getElementById('buy-button');
+        const rebakeButton = document.getElementById('rebake-button');
+        const sellButton = document.getElementById('sell-button');
+        
+        // Global variables
+        let provider, signer, contract, currentAccount, currentChainId;
+        let isLoading = false;
+        
+        // Set contract address display
+        contractAddressElement.textContent = `Contract Address: ${CONTRACT_ADDRESS}`;
+        
+        // Helper functions
+        function formatAddress(address) {
+            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+        }
+        
+        function formatBNB(wei) {
+            if (!wei) return '0';
+            const bnbValue = ethers.utils.formatEther(wei.toString());
+            return parseFloat(bnbValue).toFixed(4);
+        }
+        
+        function formatNumber(num) {
+            return parseInt(num).toLocaleString();
+        }
+        
+        function showMessage(text, type = 'info') {
+            statusMessage.textContent = text;
+            statusMessage.className = `status ${type}`;
+            statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 5000);
+        }
+        
+        function setLoading(loading) {
+            isLoading = loading;
+            
+            const buttons = [buyButton, rebakeButton, sellButton];
+            buttons.forEach(button => {
+                button.disabled = loading;
+                if (loading) {
+                    button.innerHTML = '<span class="loading-spinner"></span> Processing...';
+                } else {
+                    button.textContent = button === buyButton ? 'Buy' : 
+                                        button === rebakeButton ? 'Rebake Eggs' : 'Sell Eggs';
+                }
+            });
+        }
+
+        // THIS IS THE KEY PART THAT BLOCKS PHANTOM AND ONLY USES METAMASK
+        async function isMetaMaskAvailable() {
+            if (typeof window.ethereum === 'undefined') {
+                return false;
+            }
+            
+            // Explicitly reject Phantom wallet
+            if (window.ethereum.isPhantom) {
+                showMessage('Phantom wallet detected. Please use MetaMask for BSC.', 'error');
+                return false;
+            }
+            
+            // Prefer MetaMask if multiple providers
+            if (window.ethereum.providers) {
+                const metamaskProvider = window.ethereum.providers.find(p => p.isMetaMask);
+                if (metamaskProvider) {
+                    window.ethereum = metamaskProvider;
+                    return true;
+                }
+            }
+            
+            // If we have ethereum and it's MetaMask (or doesn't identify itself as Phantom)
+            return window.ethereum.isMetaMask || !window.ethereum.isPhantom;
+        }
+        
+        async function connect() {
+            try {
+                if (!await isMetaMaskAvailable()) {
+                    showMessage('MetaMask not found. Please install MetaMask browser extension first.', 'error');
+                    return;
+                }
+                
+                setLoading(true);
+                
+                // Request account access
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (accounts.length === 0) {
+                    showMessage('No accounts found. Please unlock your wallet.', 'error');
+                    return;
+                }
+                
+                currentAccount = accounts[0];
+                
+                // Initialize ethers provider
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                
+                // Get current chain ID
+                const { chainId } = await provider.getNetwork();
+                currentChainId = chainId;
+                
+                // Check if on BSC Testnet
+                if (chainId !== 97) {
+                    networkWarning.style.display = 'block';
+                    networkBadge.textContent = 'Wrong Network';
+                    networkBadge.className = 'network-badge error';
+                    
+                    // Try to switch network
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: BSC_TESTNET_CONFIG.chainId }],
+                        });
+                    } catch (switchError) {
+                        // This error code indicates that the chain has not been added to MetaMask
+                        if (switchError.code === 4902) {
+                            try {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [BSC_TESTNET_CONFIG],
+                                });
+                            } catch (addError) {
+                                showMessage(`Failed to add BSC network: ${addError.message}`, 'error');
+                            }
+                        } else {
+                            showMessage(`Failed to switch network: ${switchError.message}`, 'error');
+                        }
+                    }
+                } else {
+                    networkWarning.style.display = 'none';
+                    networkBadge.textContent = 'BSC Testnet';
+                    networkBadge.className = 'network-badge success';
+                }
+                
+                // Initialize contract
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                
+                // Update UI
+                walletStatus.textContent = 'Connected Wallet';
+                walletAddress.textContent = formatAddress(currentAccount);
+                walletAddress.style.display = 'block';
+                networkBadge.style.display = 'inline-block';
+                connectButton.style.display = 'none';
+                dashboard.style.display = 'block';
+                
+                // Load user data
+                await loadData();
+                
+                // Setup event handlers
+                setupEventHandlers();
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                showMessage(error.message || 'Failed to connect', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function loadData() {
+            try {
+                setLoading(true);
+                
+                // Get user data
+                const miners = await contract.getChefs(currentAccount);
+                const eggs = await contract.getMyEggs();
+                
+                // Get contract data
+                const balance = await provider.getBalance(CONTRACT_ADDRESS);
+                const rewards = await contract.pizzaRewards();
+                
+                // Estimate egg value (simplified calculation)
+                const eggValue = balance.gt(0) ? 
+                    eggs.mul(balance).div(ethers.BigNumber.from('1000000000')) : 
+                    ethers.BigNumber.from(0);
+                
+                // Update UI
+                minersCount.textContent = formatNumber(miners);
+                eggsCount.textContent = formatNumber(eggs);
+                eggsValue.textContent = `${formatBNB(eggValue)} BNB`;
+                contractBalance.textContent = `${formatBNB(balance)} BNB`;
+                marketEggs.textContent = formatNumber(rewards);
+                contractStatus.textContent = balance.gt(0) ? 'Active' : 'Not Initialized';
+                contractStatus.className = `stat-value ${balance.gt(0) ? 'success-text' : 'error-text'}`;
+                
+                // Enable/disable buttons based on eggs
+                rebakeButton.disabled = eggs.eq(0) || isLoading;
+                sellButton.disabled = eggs.eq(0) || isLoading;
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showMessage('Failed to load data from contract', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function buyMiners() {
+            try {
+                const amount = buyAmount.value;
+                if (!amount || parseFloat(amount) <= 0) {
+                    showMessage('Please enter a valid amount of BNB', 'error');
+                    return;
+                }
+                
+                setLoading(true);
+                
+                // Get referral or use own address
+                const ref = referralAddress.value || currentAccount;
+                
+                // Convert to wei
+                const value = ethers.utils.parseEther(amount);
+                
+                // Call bakePizza function
+                const tx = await contract.bakePizza(ref, { value });
+                
+                showMessage('Transaction sent. Buying miners...', 'info');
+                
+                // Wait for transaction to be mined
+                await tx.wait();
+                
+                showMessage('Successfully bought miners!', 'success');
+                
+                // Reload data
+                await loadData();
+                
+            } catch (error) {
+                console.error('Error buying miners:', error);
+                showMessage(error.message || 'Failed to buy miners', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function rebakeEggs() {
+            try {
+                setLoading(true);
+                
+                // Call rebakePizza function
+                const tx = await contract.rebakePizza();
+                
+                showMessage('Transaction sent. Rebaking eggs...', 'info');
+                
+                // Wait for transaction to be mined
+                await tx.wait();
+                
+                showMessage('Successfully rebaked eggs into miners!', 'success');
+                
+                // Reload data
+                await loadData();
+                
+            } catch (error) {
+                console.error('Error rebaking eggs:', error);
+                showMessage(error.message || 'Failed to rebake eggs', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function sellEggs() {
+            try {
+                setLoading(true);
+                
+                // Call sellPizza function
+                const tx = await contract.sellPizza();
+                
+                showMessage('Transaction sent. Selling eggs...', 'info');
+                
+                // Wait for transaction to be mined
+                await tx.wait();
+                
+                showMessage('Successfully sold eggs for BNB!', 'success');
+                
+                // Reload data
+                await loadData();
+                
+            } catch (error) {
+                console.error('Error selling eggs:', error);
+                showMessage(error.message || 'Failed to sell eggs', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function setupEventHandlers() {
+            // Setup MetaMask event listeners
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    // User disconnected their wallet
+                    window.location.reload();
+                } else {
+                    currentAccount = accounts[0];
+                    walletAddress.textContent = formatAddress(currentAccount);
+                    loadData();
+                }
+            });
+            
+            window.ethereum.on('chainChanged', () => {
+                // Always refresh on chain change
+                window.location.reload();
+            });
+            
+            // Button event handlers
+            buyButton.addEventListener('click', buyMiners);
+            rebakeButton.addEventListener('click', rebakeEggs);
+            sellButton.addEventListener('click', sellEggs);
+        }
+        
+        // Initial setup
+        connectButton.addEventListener('click', connect);
+    </script>
+    
+    <!-- Load ethers.js from CDN -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.6.umd.min.js"></script>
+</body>
+</html>
