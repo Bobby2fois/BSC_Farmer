@@ -15,9 +15,9 @@ const networkConfig = {
   }
 };
 
-// BakedPizza contract configuration
+// CornMiner contract configuration
 const contractConfig = {
-  address: '0xde38d419D2028041E1674607bBB4D80e64E91eAF',
+  address: '0xDe5eAE3E1EDDd126E563A6B59778685716882ce0',
   abi: [
     // Constructor
     {
@@ -57,7 +57,7 @@ const contractConfig = {
     },
     {
       "inputs": [],
-      "name": "marketEggs",
+      "name": "marketCorns",
       "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
       "stateMutability": "view",
       "type": "function"
@@ -66,28 +66,28 @@ const contractConfig = {
     // Main Functions
     {
       "inputs": [{ "internalType": "address", "name": "ref", "type": "address" }],
-      "name": "rebakePizza",
+      "name": "popCorn",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
       "inputs": [],
-      "name": "eatPizza",
+      "name": "sellCorn",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
       "inputs": [{ "internalType": "address", "name": "ref", "type": "address" }],
-      "name": "bakePizza",
+      "name": "buyCorn",
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
     },
     {
       "inputs": [],
-      "name": "openKitchen",
+      "name": "openFarm",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -103,14 +103,14 @@ const contractConfig = {
     },
     {
       "inputs": [{ "internalType": "address", "name": "_adr", "type": "address" }],
-      "name": "getMyMiners",
+      "name": "getMyHarvesters",
       "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
       "stateMutability": "view",
       "type": "function"
     },
     {
       "inputs": [{ "internalType": "address", "name": "_adr", "type": "address" }],
-      "name": "getMyEggs",
+      "name": "getMyCorns",
       "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
       "stateMutability": "view",
       "type": "function"

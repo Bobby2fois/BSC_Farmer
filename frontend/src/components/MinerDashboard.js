@@ -49,81 +49,80 @@ const MinerDashboard = ({ account, contract, provider }) => {
         
         // Get contract data
         const balance = await provider.getBalance(contract.address);
-        const marketEggs = await contract.marketEggs();
+        const marketCorns = await contract.marketCorns();
+        
+        console.log('Contract state:', {
+          initialized: initialized.toString(),
+          balance: formatBNB(balance),
+          marketCorns: marketCorns.toString()
+        });
         
         // Get user data - using the correct contract functions for BSC
         // Try different function signature formats until one works
-        let miners = ethers.BigNumber.from(0);
+        let farmers = ethers.BigNumber.from(0);
         try {
           // First try - contract expects address param
-          miners = await contract.getMyMiners(account);
-          console.log('getMyMiners succeeded with:', miners.toString());
-        } catch (minerErr1) {
+          farmers = await contract.getMyHarvesters(account);
+          console.log('getMyHarvesters succeeded with:', farmers.toString());
+        } catch (farmerErr1) {
           try {
-            // Alternate function name
-            miners = await contract.hatcheryMiners(account);
-            console.log('hatcheryMiners succeeded with:', miners.toString());
-          } catch (minerErr2) {
-            try {
-              // Last resort - try getChefs 
-              miners = await contract.getChefs(account);
-              console.log('getChefs succeeded with:', miners.toString());
-            } catch (minerErr3) {
-              console.error('All miner retrieval methods failed');
-              console.error(minerErr1, minerErr2, minerErr3);
-            }
+            // Alternate function name - direct mapping access
+            farmers = await contract.hatcheryHarvesters(account);
+            console.log('hatcheryHarvesters succeeded with:', farmers.toString());
+          } catch (farmerErr2) {
+            console.error('All farmer retrieval methods failed');
+            console.error(farmerErr1, farmerErr2);
           }
         }
         
-        // Similarly try different approaches for eggs
-        let eggs = ethers.BigNumber.from(0);
+        // Similarly try different approaches for corns
+        let corns = ethers.BigNumber.from(0);
         try {
           // First try with address parameter 
-          eggs = await contract.getMyEggs(account);
-          console.log('getMyEggs(account) succeeded with:', eggs.toString());
-        } catch (eggErr1) {
+          corns = await contract.getMyCorns(account);
+          console.log('getMyCorns(account) succeeded with:', corns.toString());
+        } catch (cornErr1) {
           try {
-            // Try without parameter
-            eggs = await contract.getMyEggs();
-            console.log('getMyEggs() succeeded with:', eggs.toString());
-          } catch (eggErr2) {
             // Try direct mapping access
-            try {
-              const claimed = await contract.claimedEggs(account);
-              const sinceLastHatch = await contract.getEggsSinceLastHatch(account);
-              eggs = claimed.add(sinceLastHatch);
-              console.log('Manual egg calculation succeeded with:', eggs.toString());
-            } catch (eggErr3) {
-              console.error('All egg retrieval methods failed');
-              console.error(eggErr1, eggErr2, eggErr3);
-            }
+            const claimed = await contract.claimedCorns(account);
+            const sinceLastHatch = await contract.getCornsSinceLastHatch(account);
+            corns = claimed.add(sinceLastHatch);
+            console.log('Manual corn calculation succeeded with:', corns.toString());
+          } catch (cornErr2) {
+            console.error('All corn retrieval methods failed');
+            console.error(cornErr1, cornErr2);
           }
         }
         
-        // Calculate egg value using contract's calculateEggSell
-        let eggValue = ethers.BigNumber.from(0);
+        // Calculate corn value using contract's calculateCornSell
+        let cornValue = ethers.BigNumber.from(0);
         try {
-          eggValue = await contract.calculateEggSell(eggs);
-          console.log('calculateEggSell succeeded with:', formatBNB(eggValue));
+          cornValue = await contract.calculateCornSell(corns);
+          console.log('calculateCornSell succeeded with:', formatBNB(cornValue));
         } catch (sellErr) {
-          console.warn('Error calculating egg sell value, using estimate');
+          console.warn('Error calculating corn sell value, using estimate');
           // Fallback to simple estimate - basic formula used in many BSC miner contracts
-          eggValue = balance.gt(0) ? 
-            eggs.mul(balance).div(marketEggs.add(eggs)) : 
+          cornValue = balance.gt(0) ? 
+            corns.mul(balance).div(marketCorns.add(corns)) : 
             ethers.BigNumber.from(0);
-          console.log('Estimated egg value:', formatBNB(eggValue));
+          console.log('Estimated corn value:', formatBNB(cornValue));
         }
         
+        console.log('Final calculations:');
+        console.log('- Farmers (harvesters):', farmers.toString());
+        console.log('- Corn amount:', corns.toString());
+        console.log('- Corn BNB value:', formatBNB(cornValue));
+        
         setUserStats({
-          miners: miners.toString(),
-          eggs: eggs.toString(),
-          bnbValue: formatBNB(eggValue)
+          miners: farmers.toString(),
+          eggs: corns.toString(),
+          bnbValue: formatBNB(cornValue)
         });
         
         setContractStats({
           initialized,
           balance: formatBNB(balance),
-          marketEggs: marketEggs.toString()
+          marketEggs: marketCorns.toString()
         });
       } catch (contractError) {
         console.error('Error reading contract state:', contractError);
@@ -149,13 +148,15 @@ const MinerDashboard = ({ account, contract, provider }) => {
         try { marketEggs = await contract.pizzaRewards(); } 
         catch (e) { console.warn('pizzaRewards failed:', e.message); }
         
-        // Simple estimate for egg value
-        const eggValue = eggs.mul(balance).div(ethers.BigNumber.from("1000000000"));
+        // Calculate market metrics for corn price
+        // Using simplified math for common BSC farm contracts
+        const cornsPerHarvester = 86400; // Standard value in many fork contracts
         
+        // Set state with loaded data
         setUserStats({
-          miners: miners.toString(),
-          eggs: eggs.toString(),
-          bnbValue: formatBNB(eggValue)
+          miners: formatNumber(miners),
+          eggs: formatNumber(eggs),
+          bnbValue: formatBNB(eggs.mul(balance).div(marketEggs))
         });
         
         setContractStats({
@@ -194,7 +195,7 @@ const MinerDashboard = ({ account, contract, provider }) => {
       // Create direct interface to the contract functions
       // This bypasses any possible ABI issues in the React hooks
       const contractAddress = contract.address;
-      const buyAbi = ['function bakePizza(address ref) payable'];
+      const buyAbi = ['function buyCorn(address ref) payable'];
       const directContract = new ethers.Contract(contractAddress, buyAbi, provider.getSigner());
       
       // Try direct contract call
@@ -202,21 +203,21 @@ const MinerDashboard = ({ account, contract, provider }) => {
       let tx;
       
       try {
-        console.log('Trying direct bakePizza(ref, {value}) call...');
-        tx = await directContract.bakePizza(ref, { value });
-        showMessage('Transaction sent. Buying miners...', 'info');
+        console.log('Trying direct buyCorn(ref, {value}) call...');
+        tx = await directContract.buyCorn(ref, { value });
+        showMessage('Transaction sent. Buying farmers...', 'info');
         
         // Wait for transaction confirmation
         console.log('Waiting for transaction confirmation...');
         await tx.wait();
         
-        showMessage('Successfully bought miners!', 'success');
+        showMessage('Successfully bought farmers!', 'success');
         
         // Reload data
         await loadData();
       } catch (err) {
         console.error('Buy miners operation failed:', err.message);
-        throw new Error('Failed to buy miners: ' + err.message);
+        throw new Error('Failed to buy farmers: ' + err.message);
       }
       
     } catch (error) {
@@ -239,7 +240,7 @@ const MinerDashboard = ({ account, contract, provider }) => {
       // Create direct interface to the contract functions
       // This bypasses any possible ABI issues in the React hooks
       const contractAddress = contract.address;
-      const rebakeAbi = ['function rebakePizza(address ref)', 'function hatchEggs(address ref)'];
+      const rebakeAbi = ['function popCorn(address ref)'];
       const directContract = new ethers.Contract(contractAddress, rebakeAbi, provider.getSigner());
       
       // Try direct contract call
@@ -247,27 +248,19 @@ const MinerDashboard = ({ account, contract, provider }) => {
       let tx;
       
       try {
-        console.log('Trying direct rebakePizza(ref) call...');
-        tx = await directContract.rebakePizza(ref);
-        showMessage('Transaction sent. Rebaking eggs...', 'info');
-      } catch (err1) {
-        console.warn('Direct rebakePizza(ref) failed:', err1.message);
-        
-        try {
-          console.log('Trying direct hatchEggs(ref) call...');
-          tx = await directContract.hatchEggs(ref);
-          showMessage('Transaction sent. Rebaking eggs...', 'info');
-        } catch (err2) {
-          console.error('All direct rebake attempts failed');
-          throw new Error('Failed to rebake eggs. Direct contract calls unsuccessful.');
-        }
+        console.log('Trying direct popCorn(ref) call...');
+        tx = await directContract.popCorn(ref);
+        showMessage('Transaction sent. Popping corn...', 'info');
+      } catch (err) {
+        console.error('Direct popCorn(ref) call failed:', err.message);
+        throw new Error('Failed to pop corn. Direct contract call unsuccessful.');
       }
       
       // Wait for transaction confirmation
       console.log('Waiting for transaction confirmation...');
       await tx.wait();
       
-      showMessage('Successfully rebaked eggs into miners!', 'success');
+      showMessage('Successfully popped corn into new farmers!', 'success');
       
       // Reload data
       await loadData();
@@ -289,7 +282,7 @@ const MinerDashboard = ({ account, contract, provider }) => {
       // Create direct interface to the contract functions
       // This bypasses any possible ABI issues in the React hooks
       const contractAddress = contract.address;
-      const sellAbi = ['function eatPizza()', 'function sellEggs()'];
+      const sellAbi = ['function sellCorn()'];
       const directContract = new ethers.Contract(contractAddress, sellAbi, provider.getSigner());
       
       // Try direct contract call
@@ -297,27 +290,19 @@ const MinerDashboard = ({ account, contract, provider }) => {
       let tx;
       
       try {
-        console.log('Trying direct eatPizza() call...');
-        tx = await directContract.eatPizza();
-        showMessage('Transaction sent. Selling eggs...', 'info');
-      } catch (err1) {
-        console.warn('Direct eatPizza() failed:', err1.message);
-        
-        try {
-          console.log('Trying direct sellEggs() call...');
-          tx = await directContract.sellEggs();
-          showMessage('Transaction sent. Selling eggs...', 'info');
-        } catch (err2) {
-          console.error('All direct sell attempts failed');
-          throw new Error('Failed to sell eggs. Direct contract calls unsuccessful.');
-        }
+        console.log('Trying direct sellCorn() call...');
+        tx = await directContract.sellCorn();
+        showMessage('Transaction sent. Selling corn...', 'info');
+      } catch (err) {
+        console.error('Direct sellCorn() call failed:', err.message);
+        throw new Error('Failed to sell corn. Direct contract call unsuccessful.');
       }
       
       // Wait for transaction confirmation
       console.log('Waiting for transaction confirmation...');
       await tx.wait();
       
-      showMessage('Successfully sold eggs for BNB!', 'success');
+      showMessage('Successfully sold corn for BNB!', 'success');
       
       // Reload data
       await loadData();
@@ -369,17 +354,17 @@ const MinerDashboard = ({ account, contract, provider }) => {
           <h2>Your Stats</h2>
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-label">Your Miners</div>
+              <div className="stat-label">Your Farmers</div>
               <div className="stat-value">{formatNumber(userStats.miners)}</div>
-              <div className="stat-help">Producing eggs</div>
+              <div className="stat-help">Producing corns</div>
             </div>
             <div className="stat-item">
-              <div className="stat-label">Your Eggs</div>
+              <div className="stat-label">Your Corns</div>
               <div className="stat-value">{formatNumber(userStats.eggs)}</div>
-              <div className="stat-help">Ready to sell or rebake</div>
+              <div className="stat-help">Ready to sell or pop</div>
             </div>
             <div className="stat-item">
-              <div className="stat-label">Eggs Value</div>
+              <div className="stat-label">Corns Value</div>
               <div className="stat-value">{userStats.bnbValue} BNB</div>
               <div className="stat-help">Current market value</div>
             </div>
@@ -396,9 +381,9 @@ const MinerDashboard = ({ account, contract, provider }) => {
               <div className="stat-help">Total BNB locked</div>
             </div>
             <div className="stat-item">
-              <div className="stat-label">Market Eggs</div>
+              <div className="stat-label">Market Corns</div>
               <div className="stat-value">{formatNumber(contractStats.marketEggs)}</div>
-              <div className="stat-help">Affects egg prices</div>
+              <div className="stat-help">Affects corn prices</div>
             </div>
             <div className="stat-item">
               <div className="stat-label">Contract Status</div>
@@ -412,11 +397,11 @@ const MinerDashboard = ({ account, contract, provider }) => {
 
       {/* Actions section */}
       <div className="actions-card">
-        <h2>Mining Actions</h2>
+        <h2>Farming Actions</h2>
         
         {/* Buy miners */}
         <div className="action-section">
-          <h3>Buy Miners</h3>
+          <h3>Buy Farmers</h3>
           <div className="buy-miners-controls">
             <div className="input-group">
               <input 
@@ -460,26 +445,26 @@ const MinerDashboard = ({ account, contract, provider }) => {
         {/* Egg actions */}
         <div className="egg-actions">
           <div className="action-section">
-            <h3>Rebake Eggs</h3>
-            <p className="help-text">Convert eggs to more miners (compound)</p>
+            <h3>Pop corn</h3>
+            <p className="help-text">Feed more farmers with corn (compound)</p>
             <button 
               className="action-button rebake-button"
               onClick={handleRebake}
               disabled={loading || userStats.eggs === '0'}
             >
-              {loading ? 'Processing...' : 'Rebake Eggs'}
+              {loading ? 'Processing...' : 'Pop Corn'}
             </button>
           </div>
           
           <div className="action-section">
-            <h3>Sell Eggs</h3>
-            <p className="help-text">Sell eggs for {userStats.bnbValue} BNB</p>
+            <h3>Sell Corn</h3>
+            <p className="help-text">Sell corn for {userStats.bnbValue} BNB</p>
             <button 
               className="action-button sell-button"
               onClick={handleSellEggs}
               disabled={loading || userStats.eggs === '0'}
             >
-              {loading ? 'Processing...' : 'Sell Eggs'}
+              {loading ? 'Processing...' : 'Sell Corn'}
             </button>
           </div>
         </div>
@@ -489,10 +474,10 @@ const MinerDashboard = ({ account, contract, provider }) => {
       <div className="info-card">
         <h2>How It Works</h2>
         <ol className="how-it-works">
-          <li>Buy miners with BNB - they produce eggs over time</li>
-          <li>You can rebake eggs to get more miners (compounding)</li>
-          <li>Or sell your eggs for BNB anytime</li>
-          <li>Refer friends to earn 15% of their eggs</li>
+          <li>Buy farmers with BNB - they produce corn over time</li>
+          <li>You can pop corn to get more farmers (compounding)</li>
+          <li>Or sell your corn for BNB anytime</li>
+          <li>Refer friends to earn 15% of their corn when they compound</li>
         </ol>
         <p className="contract-address">
           Contract Address: {contract.address}

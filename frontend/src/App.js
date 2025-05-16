@@ -22,8 +22,8 @@ function App() {
     <div className="App">
       <div className="container">
         <header className="App-header">
-          <h1>BakedPizza BSC Miner</h1>
-          <p>A yield farming dApp on Binance Smart Chain with a pizza/baker theme</p>
+          <h1>Corn Farm</h1>
+          <p>A yield farming dApp on Binance Smart Chain with a corn/farmer theme</p>
         </header>
 
         <div className="wallet-section">

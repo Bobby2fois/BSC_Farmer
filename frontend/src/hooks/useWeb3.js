@@ -1,15 +1,22 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { networkConfig, contractConfig } from '../contracts/config';
+
+// Local storage key for wallet persistence
+const WALLET_CONNECTED_KEY = 'BSC_MINER_WALLET_CONNECTED';
 
 const useWeb3 = () => {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
-  const [contract, setContract] = useState(null);
-  const [account, setAccount] = useState('');
+  const [account, setAccount] = useState(null);
   const [chainId, setChainId] = useState(null);
+  const [contract, setContract] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState('');
+  const [persistedConnection, setPersistedConnection] = useState(() => {
+    // Check if we have a persisted connection on init
+    return localStorage.getItem(WALLET_CONNECTED_KEY) === 'true';
+  });
 
   // Function to check if MetaMask is available and prioritize it over other wallets
   const isMetaMaskAvailable = () => {
@@ -42,12 +49,13 @@ const useWeb3 = () => {
   const connect = useCallback(async () => {
     try {
       setConnectionError('');
+      console.log('Connecting to wallet...');
       
       if (!isMetaMaskAvailable()) {
         const error = 'MetaMask not detected. Please install MetaMask extension for BSC transactions.';
         console.error(error);
         setConnectionError(error);
-        return;
+        return null;
       }
       
       // Double-check for Phantom even after the check in isMetaMaskAvailable
@@ -55,15 +63,19 @@ const useWeb3 = () => {
         const error = 'Phantom wallet detected. Please use MetaMask for BSC transactions.';
         console.error(error);
         setConnectionError(error);
-        return;
+        return null;
       }
 
       // Request accounts directly from provider
+      console.log('Requesting accounts...');
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       if (accounts.length === 0) {
         setConnectionError('No accounts found. Please unlock your wallet.');
-        return;
+        return null;
       }
+      
+      // Save connection state in localStorage for persistence
+      localStorage.setItem(WALLET_CONNECTED_KEY, 'true');
 
       // Create ethers provider
       const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -157,12 +169,37 @@ const useWeb3 = () => {
     setChainId(null);
     setContract(null);
     setIsConnected(false);
+    
+    // Clear wallet persistence from localStorage
+    localStorage.removeItem(WALLET_CONNECTED_KEY);
+    setPersistedConnection(false);
+    
     // Remove event listeners if any were set
     if (window.ethereum) {
       window.ethereum.removeAllListeners('accountsChanged');
       window.ethereum.removeAllListeners('chainChanged');
     }
   }, []);
+  
+  // Auto-reconnect function for wallet persistence
+  const autoConnect = useCallback(async () => {
+    if (persistedConnection && isMetaMaskAvailable()) {
+      try {
+        console.log('Auto-connecting to previously connected wallet...');
+        await connect();
+      } catch (error) {
+        console.error('Failed to auto-connect:', error);
+        // If auto-connect fails, clear the persisted state
+        localStorage.removeItem(WALLET_CONNECTED_KEY);
+        setPersistedConnection(false);
+      }
+    }
+  }, [persistedConnection, connect]);
+  
+  // Run auto-connect on component mount
+  useEffect(() => {
+    autoConnect();
+  }, [autoConnect]);
 
   return {
     provider,
