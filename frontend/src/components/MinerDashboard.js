@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import '../App.css';
 
 const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMessage }) => {
-  // State
+  // Stat
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({
     miners: '0',
