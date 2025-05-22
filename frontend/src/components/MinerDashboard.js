@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import '../App.css';
 
-const MinerDashboard = ({ account, contract, provider }) => {
+const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMessage }) => {
   // State
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({
@@ -14,6 +14,7 @@ const MinerDashboard = ({ account, contract, provider }) => {
     initialized: false,
     balance: '0',
     marketEggs: '0',
+    tvlUsd: '0',
   });
   const [buyAmount, setBuyAmount] = useState('0.1');
   const [referralAddress, setReferralAddress] = useState('');
@@ -37,6 +38,43 @@ const MinerDashboard = ({ account, contract, provider }) => {
     return parseInt(num).toLocaleString();
   };
 
+  // State for BNB price
+  const [bnbPrice, setBnbPrice] = useState(0);
+  
+  // Fetch BNB price from CoinGecko API (no CORS issues)
+  const fetchBnbPrice = async () => {
+    try {
+      console.log('Fetching BNB price from CoinGecko...');
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('BNB price data:', data);
+      
+      if (data && data.binancecoin && data.binancecoin.usd) {
+        const price = parseFloat(data.binancecoin.usd);
+        console.log('Fetched BNB price:', price);
+        setBnbPrice(price);
+        return price;
+      } else {
+        console.error('Invalid price data format from CoinGecko API');
+        return 0;
+      }
+    } catch (error) {
+      console.error('Error fetching BNB price:', error);
+      return 0;
+    }
+  };
+  
+  // Get the current BNB price, fetching if needed
+  const getBnbPrice = () => {
+    // If price is 0, use a fallback value until the fetch completes
+    return bnbPrice > 0 ? bnbPrice : 684.40; // Fallback price if not yet fetched
+  };
+
   // Load data from contract
   const loadData = async () => {
     try {
@@ -51,10 +89,30 @@ const MinerDashboard = ({ account, contract, provider }) => {
         const balance = await provider.getBalance(contract.address);
         const marketCorns = await contract.marketCorns();
         
+        // Make sure we have the latest BNB price
+        let currentBnbPrice = getBnbPrice();
+        const balanceBNB = parseFloat(formatBNB(balance));
+        
+        // Try to fetch a fresh price if we don't have one yet
+        if (bnbPrice === 0) {
+          try {
+            currentBnbPrice = await fetchBnbPrice() || currentBnbPrice;
+          } catch (error) {
+            console.warn('Could not fetch fresh BNB price:', error);
+          }
+        }
+        
+        // Calculate TVL and format with commas for thousands
+        const tvlValue = balanceBNB * currentBnbPrice;
+        const tvlUsd = tvlValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        console.log('TVL calculation:', { balanceBNB, bnbPrice: currentBnbPrice, tvlValue, tvlUsd });
+        
         console.log('Contract state:', {
           initialized: initialized.toString(),
           balance: formatBNB(balance),
-          marketCorns: marketCorns.toString()
+          marketCorns: marketCorns.toString(),
+          tvlUsd: tvlUsd
         });
         
         // Get user data - using the correct contract functions for BSC
@@ -122,7 +180,8 @@ const MinerDashboard = ({ account, contract, provider }) => {
         setContractStats({
           initialized,
           balance: formatBNB(balance),
-          marketEggs: marketCorns.toString()
+          marketEggs: marketCorns.toString(),
+          tvlUsd: tvlUsd
         });
       } catch (contractError) {
         console.error('Error reading contract state:', contractError);
@@ -133,6 +192,27 @@ const MinerDashboard = ({ account, contract, provider }) => {
         
         // Assume contract is initialized if it has balance
         const initialized = balance.gt(0);
+        
+        // Make sure we have the latest BNB price for fallback path
+        let currentBnbPrice = getBnbPrice();
+        const balanceBNB = parseFloat(formatBNB(balance));
+        
+        // Try to fetch a fresh price if we don't have one yet
+        if (bnbPrice === 0) {
+          try {
+            currentBnbPrice = await fetchBnbPrice() || currentBnbPrice;
+          } catch (error) {
+            console.warn('Could not fetch fresh BNB price for fallback:', error);
+          }
+        }
+        
+        // Calculate TVL and format with commas for thousands
+        const tvlValue = balanceBNB * currentBnbPrice;
+        const tvlUsd = tvlValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        console.log('Fallback TVL calculation:', { balanceBNB, bnbPrice: currentBnbPrice, tvlValue, tvlUsd });
+        
+        // Will update contractStats after collecting available data
         
         // Use available functions or fallbacks
         let miners = ethers.BigNumber.from(0);
@@ -162,7 +242,8 @@ const MinerDashboard = ({ account, contract, provider }) => {
         setContractStats({
           initialized,
           balance: formatBNB(balance),
-          marketEggs: marketEggs.toString()
+          marketEggs: marketEggs.toString(),
+          tvlUsd: tvlUsd
         });
       }
       
@@ -185,8 +266,33 @@ const MinerDashboard = ({ account, contract, provider }) => {
       setLoading(true);
       console.log('Attempting to buy miners with', buyAmount, 'BNB');
       
-      // Get referral address or use own account
-      const ref = referralAddress || account;
+      // Check if the user has enough BNB before proceeding
+      try {
+        const balance = await provider.getBalance(account);
+        const buyAmountWei = ethers.utils.parseEther(buyAmount);
+        
+        // Add 10% buffer for gas
+        const requiredAmount = buyAmountWei.mul(110).div(100);
+        
+        if (balance.lt(requiredAmount)) {
+          throw new Error('Insufficient funds');
+        }
+      } catch (balanceError) {
+        console.error('Error checking balance:', balanceError);
+        throw balanceError;
+      }
+      
+      // Validate referral address if provided
+      let ref = account; // Default to own account
+      
+      if (referralAddress) {
+        // Check if it's a valid Ethereum address format
+        if (!ethers.utils.isAddress(referralAddress)) {
+          throw new Error('Invalid referral address format');
+        }
+        ref = referralAddress;
+      }
+      
       console.log('Using referral address:', ref);
       
       // Convert BNB amount to wei
@@ -217,7 +323,18 @@ const MinerDashboard = ({ account, contract, provider }) => {
         await loadData();
       } catch (err) {
         console.error('Buy miners operation failed:', err.message);
-        throw new Error('Failed to buy farmers: ' + err.message);
+        
+        // Check if user rejected the transaction in MetaMask
+        if (err.message.includes('user rejected') || 
+            err.message.includes('User denied') || 
+            err.message.includes('User rejected') ||
+            err.code === 'ACTION_REJECTED') {
+          throw new Error('User rejected transaction');
+        } else if (err.message.includes('insufficient funds')) {
+          throw new Error('Insufficient BNB for gas fees');
+        } else {
+          throw new Error('Failed to buy farmers. Please try again.');
+        }
       }
       
     } catch (error) {
@@ -233,8 +350,17 @@ const MinerDashboard = ({ account, contract, provider }) => {
     try {
       setLoading(true);
       
-      // Get referral address or use the connected account
-      const ref = referralAddress || account;
+      // Validate referral address if provided
+      let ref = account; // Default to own account
+      
+      if (referralAddress) {
+        // Check if it's a valid Ethereum address format
+        if (!ethers.utils.isAddress(referralAddress)) {
+          throw new Error('Invalid referral address format');
+        }
+        ref = referralAddress;
+      }
+      
       console.log('Using referral address:', ref);
       
       // Create direct interface to the contract functions
@@ -253,7 +379,18 @@ const MinerDashboard = ({ account, contract, provider }) => {
         showMessage('Transaction sent. Popping corn...', 'info');
       } catch (err) {
         console.error('Direct popCorn(ref) call failed:', err.message);
-        throw new Error('Failed to pop corn. Direct contract call unsuccessful.');
+        
+        // Check if user rejected the transaction in MetaMask
+        if (err.message.includes('user rejected') || 
+            err.message.includes('User denied') || 
+            err.message.includes('User rejected') ||
+            err.code === 'ACTION_REJECTED') {
+          throw new Error('User rejected transaction');
+        } else if (err.message.includes('insufficient funds')) {
+          throw new Error('Insufficient BNB for gas fees');
+        } else {
+          throw new Error('Failed to pop corn. Please try again.');
+        }
       }
       
       // Wait for transaction confirmation
@@ -295,7 +432,18 @@ const MinerDashboard = ({ account, contract, provider }) => {
         showMessage('Transaction sent. Selling corn...', 'info');
       } catch (err) {
         console.error('Direct sellCorn() call failed:', err.message);
-        throw new Error('Failed to sell corn. Direct contract call unsuccessful.');
+        
+        // Check if user rejected the transaction in MetaMask
+        if (err.message.includes('user rejected') || 
+            err.message.includes('User denied') || 
+            err.message.includes('User rejected') ||
+            err.code === 'ACTION_REJECTED') {
+          throw new Error('User rejected transaction');
+        } else if (err.message.includes('insufficient funds')) {
+          throw new Error('Insufficient BNB for gas fees');
+        } else {
+          throw new Error('Failed to sell corn. Please try again.');
+        }
       }
       
       // Wait for transaction confirmation
@@ -314,6 +462,20 @@ const MinerDashboard = ({ account, contract, provider }) => {
       setLoading(false);
     }
   };
+
+  // Fetch BNB price on component mount and periodically
+  useEffect(() => {
+    // Initial fetch
+    fetchBnbPrice();
+    
+    // Set up periodic price updates (every 5 minutes)
+    const priceInterval = setInterval(() => {
+      fetchBnbPrice();
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(priceInterval);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Load data on component mount
   useEffect(() => {
@@ -341,9 +503,9 @@ const MinerDashboard = ({ account, contract, provider }) => {
   return (
     <div className="miner-dashboard">
       {/* Message display */}
-      {message.text && (
-        <div className={`message ${message.type}`}>
-          {message.text}
+      {(message.text || externalMessage) && (
+        <div className={`message ${externalMessage ? externalMessage.type : message.type}`}>
+          {externalMessage ? externalMessage.text : message.text}
         </div>
       )}
       
@@ -386,10 +548,11 @@ const MinerDashboard = ({ account, contract, provider }) => {
               <div className="stat-help">Affects corn prices</div>
             </div>
             <div className="stat-item">
-              <div className="stat-label">Contract Status</div>
-              <div className={`stat-value ${contractStats.initialized ? 'success-text' : 'error-text'}`}>
-                {contractStats.initialized ? "Active" : "Not Initialized"}
+              <div className="stat-label">TVL in USD</div>
+              <div className="stat-value">
+                ${contractStats.tvlUsd}
               </div>
+              <div className="stat-help">Total Value Locked</div>
             </div>
           </div>
         </div>
