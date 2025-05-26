@@ -97,7 +97,7 @@ function App() {
 
         <header className="App-header">
           <h1>Corn Farm</h1>
-          <p>🌽 The sweetest yields in the BSC fields 🌽</p>
+          <p>🌽 Plant BNB. Harvest profits. It's honest farming on BSC 🌽</p>
         </header>
 
         <div className="wallet-section">

@@ -34,7 +34,8 @@ contract CornMiner is IReentrancyGuard {
     mapping(address => uint256) public hatcheryHarvesters;
     mapping(address => uint256) public claimedCorns;
     mapping(address => uint256) public lastHatch;
-    mapping(address => address) public referrals;
+    mapping(address => address) public referrals;        // Original referrals mapping
+    mapping(address => address) public userReferrers;    // Persistent referrer storage
     
     // Market state
     uint256 public marketCorns;
@@ -93,13 +94,22 @@ contract CornMiner is IReentrancyGuard {
      * @param ref The referrer address
      */
     function popCorn(address ref) public whenInitialized {
-        // Validate and set referrer
-        if (ref == msg.sender || ref == address(0) || hatcheryHarvesters[ref] == 0) {
-            ref = ceoAddress;
+        // Process the referrer address - check if a stored referrer exists
+        address processedRef = ref;
+        
+        // If a stored referrer exists, use it (takes priority)
+        if (userReferrers[msg.sender] != address(0)) {
+            processedRef = userReferrers[msg.sender];
+        }
+        // Otherwise validate the provided referrer
+        else if (ref == msg.sender || ref == address(0) || hatcheryHarvesters[ref] == 0) {
+            // Invalid referrer provided, use CEO
+            processedRef = ceoAddress;
         }
         
+        // Update legacy referrals mapping
         if (referrals[msg.sender] == address(0)) {
-            referrals[msg.sender] = ref;
+            referrals[msg.sender] = processedRef;
         }
         
         // Calculate corns and new harvesters
@@ -111,15 +121,18 @@ contract CornMiner is IReentrancyGuard {
         claimedCorns[msg.sender] = 0;
         lastHatch[msg.sender] = block.timestamp;
 
-        // Send referral corns (15%)
-        claimedCorns[referrals[msg.sender]] = claimedCorns[referrals[msg.sender]].add(
+        // Send referral corns (15%) to the processed referrer
+        // Prioritize using the stored referrer if available
+        address referralTarget = userReferrers[msg.sender] != address(0) ? userReferrers[msg.sender] : referrals[msg.sender];
+        claimedCorns[referralTarget] = claimedCorns[referralTarget].add(
             cornsUsed.mul(15).div(100)
         );
 
         // Boost market to nerf harvesters hoarding (20%)
         marketCorns = marketCorns.add(cornsUsed.div(5));
         
-        emit PopCorn(msg.sender, ref, newHarvesters);
+        // Use the processed referrer in the event
+        emit PopCorn(msg.sender, processedRef, newHarvesters);
     }
 
     /**
@@ -156,6 +169,12 @@ contract CornMiner is IReentrancyGuard {
      * @param ref The referrer address
      */
     function buyCorn(address ref) public payable nonReentrant whenInitialized {
+        // Process and validate referrer address
+        if (ref != msg.sender && ref != address(0) && hatcheryHarvesters[ref] > 0) {
+            // Valid referrer provided, store it for future use
+            userReferrers[msg.sender] = ref;
+        }
+        
         // Calculate corns bought and fee
         uint256 cornsBought = calculateCornBuy(msg.value, address(this).balance.sub(msg.value));
         cornsBought = cornsBought.sub(devFee(cornsBought));

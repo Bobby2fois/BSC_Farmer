@@ -72,8 +72,8 @@
       ]
     },
     "/home/bobby/Evm/Bsc/miner/contracts/CornMiner.sol": {
-      "lastModificationDate": 1748251182422,
-      "contentHash": "5c714f2254c132e58af300922cf02300",
+      "lastModificationDate": 1748260515695,
+      "contentHash": "28a18c4d70564c69dde3a58ef72a87bf",
       "sourceName": "contracts/CornMiner.sol",
       "solcConfig": {
         "version": "0.8.17",
