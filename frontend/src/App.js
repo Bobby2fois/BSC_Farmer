@@ -97,7 +97,7 @@ function App() {
 
         <header className="App-header">
           <h1>Corn Farm</h1>
-          <p>A yield farming dApp on Binance Smart Chain with a corn/farmer theme</p>
+          <p>🌽 The sweetest yields in the BSC fields 🌽</p>
         </header>
 
         <div className="wallet-section">

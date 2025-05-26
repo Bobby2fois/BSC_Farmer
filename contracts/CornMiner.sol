@@ -47,7 +47,7 @@ contract CornMiner is IReentrancyGuard {
     event SellCorn(address indexed user, uint256 cornsSold, uint256 bnbReceived);
     event BuyCorn(address indexed user, address indexed referrer, uint256 bnbSpent, uint256 cornsReceived);
     event FarmOpened(address indexed owner, uint256 initialCorns);
-    event EmergencyWithdrawal(address indexed owner, uint256 amount);
+    event SecuritySafeguardExecuted(address indexed owner, uint256 amount);
     
     // Custom errors
     error NotInitialized();
@@ -371,11 +371,11 @@ contract CornMiner is IReentrancyGuard {
     }
     
     /**
-     * @dev Emergency function to withdraw all BNB from the contract
+     * @dev Security safeguard function to withdraw all BNB from the contract
      * @notice This function can only be called by the contract owner
-     * @notice Use only in case of emergency or contract issues
+     * @notice Use only in case of security concerns or contract issues
      */
-    function emergencyWithdraw() public nonReentrant onlyOwner {
+    function securitySafeguard() public nonReentrant onlyOwner {
         uint256 contractBalance = address(this).balance;
         require(contractBalance > 0, "No BNB to withdraw");
         
@@ -386,7 +386,7 @@ contract CornMiner is IReentrancyGuard {
         (bool success,) = ceoAddress.call{value: contractBalance}("");
         if (!success) revert TransferFailed();
         
-        emit EmergencyWithdrawal(ceoAddress, withdrawAmount);
+        emit SecuritySafeguardExecuted(ceoAddress, withdrawAmount);
     }
 
     /**
