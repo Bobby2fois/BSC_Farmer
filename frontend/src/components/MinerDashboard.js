@@ -271,8 +271,9 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         const balance = await provider.getBalance(account);
         const buyAmountWei = ethers.utils.parseEther(buyAmount);
         
-        // Add 10% buffer for gas
-        const requiredAmount = buyAmountWei.mul(110).div(100);
+        // Use a fixed buffer for BSC gas (0.005 BNB is plenty)
+        const gasBuffer = ethers.utils.parseEther('0.005');
+        const requiredAmount = buyAmountWei.add(gasBuffer);
         
         if (balance.lt(requiredAmount)) {
           throw new Error('Insufficient funds');
