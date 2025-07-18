@@ -2,12 +2,12 @@
  * BSC Miner Contract Configuration
  */
 
-// BSC Testnet network configuration
+// BSC Mainnet network configuration
 const networkConfig = {
-  chainId: 97, // BSC Testnet
-  name: 'BSC Testnet',
-  rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
-  blockExplorerUrls: ['https://testnet.bscscan.com/'],
+  chainId: 56, // BSC Mainnet
+  name: 'BSC Mainnet',
+  rpcUrls: ['https://bsc-dataseed.binance.org/'],
+  blockExplorerUrls: ['https://bscscan.com/'],
   nativeCurrency: {
     name: 'BNB',
     symbol: 'BNB',
@@ -17,7 +17,7 @@ const networkConfig = {
 
 // CornMiner contract configuration
 const contractConfig = {
-  address: '0x7e47F78F8D9EFf35fc49b6eac309F01859a9ED99',
+  address: '0xD9bbb27Df553cfC7Ea919009B4Dd9dc357775836',
   abi: [
     // Constructor
     {

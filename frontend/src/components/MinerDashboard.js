@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import '../App.css';
+import { devLog, txLog, warnLog, errorLog } from '../utils/logger';
 
 const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMessage }) => {
   // Stat
@@ -44,7 +45,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
   // Fetch BNB price from CoinGecko API (no CORS issues)
   const fetchBnbPrice = async () => {
     try {
-      console.log('Fetching BNB price from CoinGecko...');
+      devLog('Fetching BNB price from CoinGecko...');
       const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd');
       
       if (!response.ok) {
@@ -52,19 +53,19 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       }
       
       const data = await response.json();
-      console.log('BNB price data:', data);
+      devLog('BNB price data:', data);
       
       if (data && data.binancecoin && data.binancecoin.usd) {
         const price = parseFloat(data.binancecoin.usd);
-        console.log('Fetched BNB price:', price);
+        devLog('Fetched BNB price:', price);
         setBnbPrice(price);
         return price;
       } else {
-        console.error('Invalid price data format from CoinGecko API');
+        errorLog('Invalid price data format from CoinGecko API');
         return 0;
       }
     } catch (error) {
-      console.error('Error fetching BNB price:', error);
+      errorLog('Error fetching BNB price:', error);
       return 0;
     }
   };
@@ -98,7 +99,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
           try {
             currentBnbPrice = await fetchBnbPrice() || currentBnbPrice;
           } catch (error) {
-            console.warn('Could not fetch fresh BNB price:', error);
+            warnLog('Could not fetch fresh BNB price:', error);
           }
         }
         
@@ -106,9 +107,9 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         const tvlValue = balanceBNB * currentBnbPrice;
         const tvlUsd = tvlValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
-        console.log('TVL calculation:', { balanceBNB, bnbPrice: currentBnbPrice, tvlValue, tvlUsd });
+        devLog('TVL calculation:', { balanceBNB, bnbPrice: currentBnbPrice, tvlValue, tvlUsd });
         
-        console.log('Contract state:', {
+        devLog('Contract state:', {
           initialized: initialized.toString(),
           balance: formatBNB(balance),
           marketCorns: marketCorns.toString(),
@@ -121,15 +122,15 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         try {
           // First try - contract expects address param
           farmers = await contract.getMyHarvesters(account);
-          console.log('getMyHarvesters succeeded with:', farmers.toString());
+          devLog('getMyHarvesters succeeded with:', farmers.toString());
         } catch (farmerErr1) {
           try {
             // Alternate function name - direct mapping access
             farmers = await contract.hatcheryHarvesters(account);
-            console.log('hatcheryHarvesters succeeded with:', farmers.toString());
+            devLog('hatcheryHarvesters succeeded with:', farmers.toString());
           } catch (farmerErr2) {
-            console.error('All farmer retrieval methods failed');
-            console.error(farmerErr1, farmerErr2);
+            errorLog('All farmer retrieval methods failed');
+            errorLog(farmerErr1, farmerErr2);
           }
         }
         
@@ -138,17 +139,17 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         try {
           // First try with address parameter 
           corns = await contract.getMyCorns(account);
-          console.log('getMyCorns(account) succeeded with:', corns.toString());
+          devLog('getMyCorns(account) succeeded with:', corns.toString());
         } catch (cornErr1) {
           try {
             // Try direct mapping access
             const claimed = await contract.claimedCorns(account);
             const sinceLastHatch = await contract.getCornsSinceLastHatch(account);
             corns = claimed.add(sinceLastHatch);
-            console.log('Manual corn calculation succeeded with:', corns.toString());
+            devLog('Manual corn calculation succeeded with:', corns.toString());
           } catch (cornErr2) {
-            console.error('All corn retrieval methods failed');
-            console.error(cornErr1, cornErr2);
+            errorLog('All corn retrieval methods failed');
+            errorLog(cornErr1, cornErr2);
           }
         }
         
@@ -156,20 +157,20 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         let cornValue = ethers.BigNumber.from(0);
         try {
           cornValue = await contract.calculateCornSell(corns);
-          console.log('calculateCornSell succeeded with:', formatBNB(cornValue));
+          devLog('calculateCornSell succeeded with:', formatBNB(cornValue));
         } catch (sellErr) {
-          console.warn('Error calculating corn sell value, using estimate');
+          warnLog('Error calculating corn sell value, using estimate');
           // Fallback to simple estimate - basic formula used in many BSC miner contracts
           cornValue = balance.gt(0) ? 
             corns.mul(balance).div(marketCorns.add(corns)) : 
             ethers.BigNumber.from(0);
-          console.log('Estimated corn value:', formatBNB(cornValue));
+          devLog('Estimated corn value:', formatBNB(cornValue));
         }
         
-        console.log('Final calculations:');
-        console.log('- Farmers (harvesters):', farmers.toString());
-        console.log('- Corn amount:', corns.toString());
-        console.log('- Corn BNB value:', formatBNB(cornValue));
+        devLog('Final calculations:');
+        devLog('- Farmers (harvesters):', farmers.toString());
+        devLog('- Corn amount:', corns.toString());
+        devLog('- Corn BNB value:', formatBNB(cornValue));
         
         setUserStats({
           miners: farmers.toString(),
@@ -184,7 +185,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
           tvlUsd: tvlUsd
         });
       } catch (contractError) {
-        console.error('Error reading contract state:', contractError);
+        errorLog('Error reading contract state:', contractError);
         // Fallback if we can't read directly (older contract or missing functions)
         
         // Get contract balance
@@ -202,7 +203,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
           try {
             currentBnbPrice = await fetchBnbPrice() || currentBnbPrice;
           } catch (error) {
-            console.warn('Could not fetch fresh BNB price for fallback:', error);
+            warnLog('Could not fetch fresh BNB price for fallback:', error);
           }
         }
         
@@ -210,7 +211,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         const tvlValue = balanceBNB * currentBnbPrice;
         const tvlUsd = tvlValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
-        console.log('Fallback TVL calculation:', { balanceBNB, bnbPrice: currentBnbPrice, tvlValue, tvlUsd });
+        devLog('Fallback TVL calculation:', { balanceBNB, bnbPrice: currentBnbPrice, tvlValue, tvlUsd });
         
         // Will update contractStats after collecting available data
         
@@ -220,13 +221,13 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         let marketEggs = ethers.BigNumber.from(0);
         
         try { miners = await contract.getChefs(account); } 
-        catch (e) { console.warn('getChefs failed:', e.message); }
+        catch (e) { warnLog('getChefs failed:', e.message); }
         
         try { eggs = await contract.getMyEggs(); } 
-        catch (e) { console.warn('getMyEggs failed:', e.message); }
+        catch (e) { warnLog('getMyEggs failed:', e.message); }
         
         try { marketEggs = await contract.pizzaRewards(); } 
-        catch (e) { console.warn('pizzaRewards failed:', e.message); }
+        catch (e) { warnLog('pizzaRewards failed:', e.message); }
         
         // Calculate market metrics for corn price
         // Using simplified math for common BSC farm contracts
@@ -248,7 +249,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       }
       
     } catch (error) {
-      console.error('Error loading data:', error);
+      errorLog('Error loading data:', error);
       showMessage('Failed to load data from contract', 'error');
     } finally {
       setLoading(false);
@@ -264,22 +265,22 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
 
     try {
       setLoading(true);
-      console.log('Attempting to buy miners with', buyAmount, 'BNB');
+      devLog('Attempting to buy miners with', buyAmount, 'BNB');
       
       // Check if the user has enough BNB before proceeding
       try {
         const balance = await provider.getBalance(account);
         const buyAmountWei = ethers.utils.parseEther(buyAmount);
         
-        // Use a fixed buffer for BSC gas (0.005 BNB is plenty)
-        const gasBuffer = ethers.utils.parseEther('0.005');
+        // Use a fixed buffer for BSC gas
+        const gasBuffer = ethers.utils.parseEther('0.002');
         const requiredAmount = buyAmountWei.add(gasBuffer);
         
         if (balance.lt(requiredAmount)) {
           throw new Error('Insufficient funds');
         }
       } catch (balanceError) {
-        console.error('Error checking balance:', balanceError);
+        errorLog('Error checking balance:', balanceError);
         throw balanceError;
       }
       
@@ -294,7 +295,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         ref = referralAddress;
       }
       
-      console.log('Using referral address:', ref);
+      devLog('Using referral address:', ref);
       
       // Convert BNB amount to wei
       const value = ethers.utils.parseEther(buyAmount);
@@ -306,16 +307,16 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       const directContract = new ethers.Contract(contractAddress, buyAbi, provider.getSigner());
       
       // Try direct contract call
-      console.log('Attempting direct contract call for buy...');
+      devLog('Attempting direct contract call for buy...');
       let tx;
       
       try {
-        console.log('Trying direct buyCorn(ref, {value}) call...');
+        devLog('Trying direct buyCorn(ref, {value}) call...');
         tx = await directContract.buyCorn(ref, { value });
         showMessage('Transaction sent. Buying farmers...', 'info');
         
         // Wait for transaction confirmation
-        console.log('Waiting for transaction confirmation...');
+        txLog('Waiting for transaction confirmation...');
         await tx.wait();
         
         showMessage('Successfully bought farmers!', 'success');
@@ -323,7 +324,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         // Reload data
         await loadData();
       } catch (err) {
-        console.error('Buy miners operation failed:', err.message);
+        errorLog('Buy miners operation failed:', err.message);
         
         // Check if user rejected the transaction in MetaMask
         if (err.message.includes('user rejected') || 
@@ -339,7 +340,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       }
       
     } catch (error) {
-      console.error('Error buying miners:', error);
+      errorLog('Error buying miners:', error);
       showMessage(error.message || 'Failed to buy miners', 'error');
     } finally {
       setLoading(false);
@@ -362,7 +363,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
         ref = referralAddress;
       }
       
-      console.log('Using referral address:', ref);
+      devLog('Using referral address:', ref);
       
       // Create direct interface to the contract functions
       // This bypasses any possible ABI issues in the React hooks
@@ -371,15 +372,15 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       const directContract = new ethers.Contract(contractAddress, rebakeAbi, provider.getSigner());
       
       // Try direct contract call
-      console.log('Attempting direct contract call...');
+      txLog('Attempting direct contract call...');
       let tx;
       
       try {
-        console.log('Trying direct popCorn(ref) call...');
+        txLog('Trying direct popCorn(ref) call...');
         tx = await directContract.popCorn(ref);
         showMessage('Transaction sent. Popping corn...', 'info');
       } catch (err) {
-        console.error('Direct popCorn(ref) call failed:', err.message);
+        errorLog('Direct popCorn(ref) call failed:', err.message);
         
         // Check if user rejected the transaction in MetaMask
         if (err.message.includes('user rejected') || 
@@ -395,7 +396,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       }
       
       // Wait for transaction confirmation
-      console.log('Waiting for transaction confirmation...');
+      txLog('Waiting for transaction confirmation...');
       await tx.wait();
       
       showMessage('Successfully popped corn into new farmers!', 'success');
@@ -404,7 +405,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       await loadData();
       
     } catch (error) {
-      console.error('Error rebaking eggs:', error);
+      errorLog('Error rebaking eggs:', error);
       showMessage(error.message || 'Failed to rebake eggs', 'error');
     } finally {
       setLoading(false);
@@ -415,7 +416,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
   const handleSellEggs = async () => {
     try {
       setLoading(true);
-      console.log('Attempting to sell eggs...');
+      devLog('Attempting to sell eggs...');
       
       // Create direct interface to the contract functions
       // This bypasses any possible ABI issues in the React hooks
@@ -424,15 +425,15 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       const directContract = new ethers.Contract(contractAddress, sellAbi, provider.getSigner());
       
       // Try direct contract call
-      console.log('Attempting direct contract call for sell...');
+      devLog('Attempting direct contract call for sell...');
       let tx;
       
       try {
-        console.log('Trying direct sellCorn() call...');
+        devLog('Trying direct sellCorn() call...');
         tx = await directContract.sellCorn();
         showMessage('Transaction sent. Selling corn...', 'info');
       } catch (err) {
-        console.error('Direct sellCorn() call failed:', err.message);
+        errorLog('Direct sellCorn() call failed:', err.message);
         
         // Check if user rejected the transaction in MetaMask
         if (err.message.includes('user rejected') || 
@@ -448,7 +449,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       }
       
       // Wait for transaction confirmation
-      console.log('Waiting for transaction confirmation...');
+      txLog('Waiting for transaction confirmation...');
       await tx.wait();
       
       showMessage('Successfully sold corn for BNB!', 'success');
@@ -457,7 +458,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
       await loadData();
       
     } catch (error) {
-      console.error('Error selling eggs:', error);
+      errorLog('Error selling eggs:', error);
       showMessage(error.message || 'Failed to sell eggs', 'error');
     } finally {
       setLoading(false);

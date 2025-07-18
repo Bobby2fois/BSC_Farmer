@@ -4,6 +4,7 @@ import useWeb3 from './hooks/useWeb3';
 import MinerDashboard from './components/MinerDashboard';
 import './App.css';
 import cornFieldBg from './corn_field.png';
+import { devLog, txLog, warnLog, errorLog } from './utils/logger';
 
 function App() {
   const { account, contract, provider, connect, disconnect, chainId } = useWeb3();
@@ -18,9 +19,9 @@ function App() {
     setTimeout(() => setMessage({ text: '', type: '' }), 5000);
   };
   
-  // Check if connected to BSC Testnet (ChainId 97)
+  // Check if connected to BSC Mainnet (ChainId 56)
   useEffect(() => {
-    setIsCorrectNetwork(chainId === 97);
+    setIsCorrectNetwork(chainId === 56);
   }, [chainId]);
 
   // Format address for display
@@ -58,7 +59,7 @@ function App() {
         const balance = await provider.getBalance(account);
         setBnbBalance(formatBNB(balance));
       } catch (error) {
-        console.error('Error fetching BNB balance:', error);
+        errorLog('Error fetching BNB balance:', error);
       }
     }
   };
@@ -136,7 +137,7 @@ function App() {
         {account && !isCorrectNetwork && (
           <div className="network-warning">
             <strong>Wrong Network Detected</strong>
-            <p>Please switch to BSC Testnet to use this application.</p>
+            <p>Please switch to BSC Mainnet to use this application.</p>
           </div>
         )}
 

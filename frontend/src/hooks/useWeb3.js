@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { networkConfig, contractConfig } from '../contracts/config';
+import { devLog, txLog, warnLog, errorLog } from '../utils/logger';
 
 // Local storage key for wallet persistence
 const WALLET_CONNECTED_KEY = 'BSC_MINER_WALLET_CONNECTED';
@@ -26,7 +27,7 @@ const useWeb3 = () => {
     
     // If this is Phantom wallet, reject it
     if (window.ethereum.isPhantom) {
-      console.log('Phantom wallet detected. This dApp only supports MetaMask for BSC.');
+      warnLog('Phantom wallet detected. This dApp only supports MetaMask for BSC.');
       return false;
     }
     
@@ -36,7 +37,7 @@ const useWeb3 = () => {
       if (metamaskProvider) {
         // Set the found MetaMask provider as the default ethereum provider
         window.ethereum = metamaskProvider;
-        console.log('Multiple providers found. MetaMask prioritized.');
+        devLog('Multiple providers found. MetaMask prioritized.');
         return true;
       }
     }
@@ -49,11 +50,11 @@ const useWeb3 = () => {
   const connect = useCallback(async () => {
     try {
       setConnectionError('');
-      console.log('Connecting to wallet...');
+      devLog('Connecting to wallet...');
       
       if (!isMetaMaskAvailable()) {
         const error = 'MetaMask not detected. Please install MetaMask extension for BSC transactions.';
-        console.error(error);
+        errorLog(error);
         setConnectionError(error);
         return null;
       }
@@ -61,13 +62,13 @@ const useWeb3 = () => {
       // Double-check for Phantom even after the check in isMetaMaskAvailable
       if (window.ethereum.isPhantom) {
         const error = 'Phantom wallet detected. Please use MetaMask for BSC transactions.';
-        console.error(error);
+        errorLog(error);
         setConnectionError(error);
         return null;
       }
 
       // Request accounts directly from provider
-      console.log('Requesting accounts...');
+      devLog('Requesting accounts...');
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       if (accounts.length === 0) {
         setConnectionError('No accounts found. Please unlock your wallet.');
@@ -83,10 +84,10 @@ const useWeb3 = () => {
       const chainIdHex = await web3Provider.send('eth_chainId', []);
       const parsedChainId = parseInt(chainIdHex, 16);
 
-      // Check if on BSC Testnet (97)
+      // Check if on BSC Mainnet (56)
       if (parsedChainId !== networkConfig.chainId) {
         try {
-          // Try to switch to BSC Testnet
+          // Try to switch to BSC Mainnet
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: `0x${networkConfig.chainId.toString(16)}` }],
@@ -95,7 +96,7 @@ const useWeb3 = () => {
           // This error code indicates that the chain has not been added to MetaMask
           if (switchError.code === 4902) {
             try {
-              // Add BSC Testnet to wallet
+              // Add BSC Mainnet to wallet
               await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [
@@ -156,7 +157,7 @@ const useWeb3 = () => {
 
       return { provider: updatedProvider, signer: updatedSigner, account: accounts[0] };
     } catch (error) {
-      console.error('Connection error:', error);
+      errorLog('Connection error:', error);
       setConnectionError(error.message || 'Failed to connect wallet');
       return null;
     }
@@ -185,10 +186,10 @@ const useWeb3 = () => {
   const autoConnect = useCallback(async () => {
     if (persistedConnection && isMetaMaskAvailable()) {
       try {
-        console.log('Auto-connecting to previously connected wallet...');
+        devLog('Auto-connecting to previously connected wallet...');
         await connect();
       } catch (error) {
-        console.error('Failed to auto-connect:', error);
+        errorLog('Failed to auto-connect:', error);
         // If auto-connect fails, clear the persisted state
         localStorage.removeItem(WALLET_CONNECTED_KEY);
         setPersistedConnection(false);
