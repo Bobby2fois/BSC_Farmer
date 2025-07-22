@@ -229,4 +229,8 @@ The contract includes multiple security measures:
 - Reentrancy protection
 - Access control modifiers
 - Event logging for transparency
+<<<<<<< HEAD
 - Custom errors for better error reporting
+=======
+- Custom errors for better error reporting
+>>>>>>> 91416bd3cedf893c76e7437353f91f5df0a00a4c
