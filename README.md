@@ -2,6 +2,8 @@
 
 A yield farming dApp on Binance Smart Chain with a corn/farmer theme, allowing users to earn rewards through staking BNB.
 
+**🌐 Live Website: [CornFarm.xyz](https://www.cornfarm.xyz/)**
+
 ## 🌽 Project Overview
 
 CornMiner is a decentralized yield farming application built on Binance Smart Chain (BSC) that lets users stake BNB to earn passive income. The platform uses a farming metaphor where users:
