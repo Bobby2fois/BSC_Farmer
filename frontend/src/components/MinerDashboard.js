@@ -648,7 +648,7 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
           Contract Address: {contract.address}
         </p>
         <div className="social-links">
-          <a href="https://github.com/user12434353/minerbsc" target="_blank" rel="noopener noreferrer" className="social-link github-link">
+          <a href="https://github.com/bobby2fois/farmer" target="_blank" rel="noopener noreferrer" className="social-link github-link">
             <img 
               src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" 
               alt="GitHub" 
