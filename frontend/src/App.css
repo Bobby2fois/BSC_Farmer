@@ -715,6 +715,15 @@ input[type="text"]:focus {
   height: 40px;
 }
 
+.github-link {
+  background-color: transparent;
+}
+
+.github-link .social-icon {
+  width: 24px;
+  height: 24px;
+}
+
 /* Fee indicator for the dynamic sell fees system */
 .fee-indicator {
   display: flex;
