@@ -52,7 +52,7 @@ module.exports = {
   etherscan: {
     apiKey: {
       mainnet: process.env.BSCSCAN_API_KEY,
-      bscTestnet: process.env.BSCSCAN_API_KEY
+      testnet: process.env.BSCSCAN_API_KEY
     },
     customChains: [
       {
@@ -61,6 +61,14 @@ module.exports = {
         urls: {
           apiURL: "https://api.etherscan.io/v2/api?chainid=56",
           browserURL: "https://bscscan.com"
+        }
+      },
+      {
+        network: "testnet",
+        chainId: 97,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api?chainid=97",
+          browserURL: "https://testnet.bscscan.com"
         }
       }
     ]

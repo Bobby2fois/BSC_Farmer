@@ -648,17 +648,10 @@ const MinerDashboard = ({ account, contract, provider, externalMessage, onShowMe
           Contract Address: {contract.address}
         </p>
         <div className="social-links">
-          <a href="https://x.com/CornFarmMiner" target="_blank" rel="noopener noreferrer" className="social-link twitter-link">
+          <a href="https://github.com/user12434353/minerbsc" target="_blank" rel="noopener noreferrer" className="social-link github-link">
             <img 
-              src="https://upload.wikimedia.org/wikipedia/commons/5/57/X_logo_2023_%28white%29.png" 
-              alt="X (Twitter)" 
-              className="social-icon" 
-            />
-          </a>
-          <a href="https://t.me/CornFarmMiner" target="_blank" rel="noopener noreferrer" className="social-link telegram-link">
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/commons/8/83/Telegram_2019_Logo.svg" 
-              alt="Telegram" 
+              src="https://upload.wikimedia.org/wikipedia/commons/9/91/Octicons-mark-github.svg" 
+              alt="GitHub" 
               className="social-icon" 
             />
           </a>
