@@ -12,7 +12,7 @@ CornMiner is a decentralized yield farming application built on Binance Smart Ch
 
 ## 🚀 Features
 
-- **Buy Farmers**: Purchase miners with BNB to start generating corn
+- **Buy Farmers**: Purchase farmers with BNB to start generating corn
 - **Compound Rewards**: Reinvest your corn to get more farmers (compounding)
 - **Sell Corn**: Convert your corn back to BNB anytime
 - **Referral System**: Earn 15% of referred users' corn when they compound
@@ -75,8 +75,8 @@ The CornMiner smart contract is deployed to BSC Testnet at:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/user12434353/minerbsc.git
-   cd minerbsc
+   git clone https://github.com/bobby2fois/farmer.git
+   cd farmer
    ```
 
 2. Install dependencies:
@@ -119,16 +119,6 @@ Deploy to Vercel with the following settings:
 - Output Directory: `build`
 - Framework: `create-react-app`
 
-## 📝 License
-
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgements
-
-- [Binance Smart Chain](https://www.binance.org/en/smartChain)
-- [Hardhat](https://hardhat.org/)
-- [ethers.js](https://docs.ethers.io/)
-- [React](https://reactjs.org/)
 
 ## Smart Contract Improvements
 
@@ -190,17 +180,17 @@ npm run verify:mainnet
 
 ## Contract Overview
 
-The BakedPizza contract is a yield farming contract that allows users to:
+The CornMiner contract is a yield farming contract that allows users to:
 
-1. **Buy Miners**: Users can purchase miners with BNB
-2. **Generate Eggs**: Miners produce eggs over time
-3. **Sell Eggs**: Users can sell eggs for BNB
-4. **Rebake Eggs**: Convert eggs to more miners
+1. **Buy Farmer**: Users can purchase farmer with BNB
+2. **Generate Corn**: Farmers produce corns over time
+3. **Sell Corn**: Users can sell corn for BNB
+4. **Pop Corn**: Convert corn to more farmers
 
 ### Key Features
 
-- **Referral System**: Earn 15% of the eggs used by your referrals
-- **Market Mechanism**: Dynamic pricing based on contract balance and available eggs
+- **Referral System**: Earn 15% of the corn used by your referrals
+- **Market Mechanism**: Dynamic pricing based on contract balance and available corn
 - **Dev Fee**: 5% fee on all operations goes to the contract owner
 
 ## BSC Deployment
@@ -228,7 +218,7 @@ npm test
 
 Tests cover basic functionality including:
 - Contract deployment
-- Kitchen initialization
+- Contract initialization
 - Buying and selling functionality
 - Referral system
 - Calculation accuracy
@@ -240,13 +230,3 @@ The contract includes multiple security measures:
 - Access control modifiers
 - Event logging for transparency
 - Custom errors for better error reporting
-
-## Frontend Development (Next Steps)
-
-- Develop a React.js-based frontend
-- Integrate with contract using ethers.js
-- Implement wallet connection via Web3Modal
-
-## License
-
-MIT
