@@ -17,7 +17,7 @@ const networkConfig = {
 
 // CornMiner contract configuration
 const contractConfig = {
-  address: '0xD9bbb27Df553cfC7Ea919009B4Dd9dc357775836',
+  address: '0x13335b21C0083D75A18c34039acda8Aa88Fc5197',
   abi: [
     // Constructor
     {

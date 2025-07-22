@@ -1,5 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-etherscan");
+require("@nomicfoundation/hardhat-verify");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require("dotenv").config();
@@ -14,8 +14,6 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -52,7 +50,20 @@ module.exports = {
     currency: "USD"
   },
   etherscan: {
-    apiKey: process.env.BSCSCAN_API_KEY
+    apiKey: {
+      mainnet: process.env.BSCSCAN_API_KEY,
+      bscTestnet: process.env.BSCSCAN_API_KEY
+    },
+    customChains: [
+      {
+        network: "mainnet",
+        chainId: 56,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api?chainid=56",
+          browserURL: "https://bscscan.com"
+        }
+      }
+    ]
   },
   paths: {
     sources: "./contracts",
