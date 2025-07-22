@@ -19,9 +19,9 @@ function App() {
     setTimeout(() => setMessage({ text: '', type: '' }), 5000);
   };
   
-  // Check if connected to BSC Mainnet (ChainId 56)
+  // Check if connected to BSC Testnet (ChainId 97)
   useEffect(() => {
-    setIsCorrectNetwork(chainId === 56);
+    setIsCorrectNetwork(chainId === 97);
   }, [chainId]);
 
   // Format address for display
@@ -137,7 +137,7 @@ function App() {
         {account && !isCorrectNetwork && (
           <div className="network-warning">
             <strong>Wrong Network Detected</strong>
-            <p>Please switch to BSC Mainnet to use this application.</p>
+            <p>Please switch to BSC Testnet to use this application.</p>
           </div>
         )}
 
