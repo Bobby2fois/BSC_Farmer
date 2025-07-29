@@ -80,20 +80,41 @@ The CornMiner contract is a yield farming contract that allows users to:
 - **Market Mechanism**: Dynamic pricing based on contract balance and available corn
 - **Dev Fee**: 5% fee on all operations goes to the contract owner
 
-## BSC Deployment
+## 🚀 How to Use CornMiner
 
-### Testnet Deployment
+### Prerequisites
 
-1. Ensure your account has testnet BNB (get from [BSC Faucet](https://testnet.binance.org/faucet-smart))
-2. Run `npm run deploy:testnet`
-3. Run `npm run verify:testnet` to verify the contract on BSCScan
+- MetaMask or another Web3 wallet installed in your browser
+- BSC Testnet configured in your wallet
+  - Network Name: BSC Testnet
+  - RPC URL: https://data-seed-prebsc-1-s1.binance.org:8545/
+  - Chain ID: 97
+  - Currency Symbol: BNB
+  - Block Explorer: https://testnet.bscscan.com
+- Testnet BNB in your wallet (get from [BSC Faucet](https://testnet.binance.org/faucet-smart))
 
-### Mainnet Deployment
+### Interacting with CornMiner
 
-1. Ensure you have real BNB for deployment gas fees
-2. Double-check all settings before mainnet deployment
-3. Run `npm run deploy:mainnet`
-4. Run `npm run verify:mainnet` to verify the contract on BSCScan
+1. **Connect Your Wallet**:
+   - Visit [CornFarm.xyz](https://www.cornfarm.xyz/)
+   - Click "Connect Wallet" and select MetaMask
+   - Ensure you're on BSC Testnet network
+
+2. **Buy Farmers**:
+   - Enter the amount of BNB you want to invest
+   - Click "Buy Farmers" to purchase farmers who will generate corn
+   - Approve the transaction in your wallet
+
+3. **Manage Your Farm**:
+   - Monitor your corn production in real-time
+   - Choose your strategy:
+     - **Compound**: Click "Pop Corn" to reinvest your corn into more farmers
+     - **Harvest**: Click "Sell Corn" to convert your corn to BNB
+
+4. **Referral Program**:
+   - Get your unique referral link from the dashboard
+   - Share with friends to earn 15% of their corn when they compound
+   - No limit to how many people you can refer
 
 ## Security Considerations
 
